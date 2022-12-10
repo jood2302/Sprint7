@@ -19,18 +19,20 @@ public class LoginCourierTest {
     public StartRules startRules = new StartRules();
 
     private final String loginCourierJson;
-
-    public LoginCourierTest(String loginCourierJson) {
+    private final String result;
+    private final int status;
+    public LoginCourierTest(String loginCourierJson, String result, int status) {
         this.loginCourierJson = loginCourierJson;
+        this.result=result;
+        this.status=status;
     }
 
     @Parameterized.Parameters
     public static Object[][] getTestData() {
         return new Object[][]{
-                {"courier/login/loginAllFields.json"},
-                {"courier/login/unexistingLogin.json"},
-                {"courier/login/wrongLogin.json"},
-                {"courier/login/wrongPassword.json"},
+                {"courier/login/unexistingLogin.json", "Учетная запись не найдена", 404},
+                {"courier/login/wrongLogin.json", "Недостаточно данных для входа", 400},
+                {"courier/login/wrongPassword.json", "Недостаточно данных для входа", 400},
         };
     }
 
@@ -41,23 +43,16 @@ public class LoginCourierTest {
     @Step("Send POST request to login")
     public void loginCourier() {
         File json = new File(startRules.getJsonPath() + loginCourierJson);
-        Response response = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(json)
-                .when()
-                .post(startRules.getApiUrlVersion1() + "/courier/login");
-
-        switch( response.getStatusCode()) {
-            case 200:
-                response.then().assertThat().body("id", notNullValue());
-                break;
-            case 400:
-                response.then().assertThat().body("message", equalTo("Недостаточно данных для входа"));
-                break;
-            case 404:
-                response.then().assertThat().body("message", equalTo("Учетная запись не найдена"));
-                break;
-        }
+            given()
+                    .header("Content-type", "application/json")
+                    .and()
+                    .body(json)
+                    .when()
+                    .post(startRules.getApiUrlVersion1() + "/courier/login")
+                    .then()
+                    .assertThat()
+                    .body("message", equalTo(result))
+                    .and()
+                    .statusCode(status);
     }
 }

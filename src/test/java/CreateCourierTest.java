@@ -1,7 +1,6 @@
 import io.qameta.allure.Description;
 import io.qameta.allure.Step;
 import io.qameta.allure.junit4.DisplayName;
-import io.restassured.response.Response;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -18,45 +17,40 @@ public class CreateCourierTest {
     public StartRules startRules = new StartRules();
 
     private final String createCourierJson;
+    private final String result;
+    private final int status;
 
-    public CreateCourierTest(String createCourierJson) {
+    public CreateCourierTest(String createCourierJson, String result, int status) {
         this.createCourierJson = createCourierJson;
+        this.result = result;
+        this.status = status;
     }
 
     @Parameterized.Parameters
     public static Object[][] getTestData() {
         return new Object[][]{
-                {"courier/create/allFields.json"},
-                {"courier/create/duplicateUser.json"},
-                {"courier/create/withoutLogin.json"},
-                {"courier/create/withoutPassword.json"},
-                {"courier/create/withoutName.json"},
+                {"courier/create/duplicateUser.json",  "Этот логин уже используется. Попробуйте другой.", 409},
+                {"courier/create/withoutLogin.json",  "Недостаточно данных для создания учетной записи", 400},
+                {"courier/create/withoutPassword.json","Недостаточно данных для создания учетной записи", 400},
         };
     }
 
     @Test
     @DisplayName("Check courier created")
-    @Description("Check if the courier can be created")
+    @Description("Check if the courier can be created without required parameters or with the same login")
     @Step("Send POST request to create courier")
     public void createCourier() {
         File json = new File(startRules.getJsonPath() + createCourierJson);
-        Response response = given()
+        given()
                 .header("Content-type", "application/json")
                 .and()
                 .body(json)
                 .when()
-                .post(startRules.getApiUrlVersion1() + "/courier");
-
-        switch( response.getStatusCode()) {
-            case 201:
-                response.then().assertThat().body("ok", equalTo(true));
-                break;
-            case 400:
-                response.then().assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"));
-                break;
-            case 409:
-                response.then().assertThat().body("message", equalTo("Этот логин уже используется. Попробуйте другой."));
-                break;
-        }
+                .post(startRules.getApiUrlVersion1() + "/courier")
+                .then()
+                .assertThat()
+                .body("message", equalTo(result))
+                .and()
+                .statusCode(status);
     }
 }
