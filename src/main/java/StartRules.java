@@ -1,6 +1,8 @@
 import io.restassured.RestAssured;
 import org.junit.rules.ExternalResource;
 
+
+
 public class StartRules extends ExternalResource {
 
     public String apiUrl;
